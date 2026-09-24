@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tùy chỉnh Khối 3D - Đại số tuyến tính</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #0f0f14;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #00ffc8;
+            font-size: 20px;
+            margin-bottom: 15px;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        canvas {
+            border: 2px solid #2a2a38;
+            border-radius: 8px;
+            background-color: #151520;
+            box-shadow: 0 0 20px rgba(0, 255, 200, 0.15);
+        }
+
+        /* Khung điều khiển UI */
+        .controls {
+            background-color: #1c1c28;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #2a2a38;
+            width: 280px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
+        select,
+        input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            background-color: #2a2a38;
+            border: 1px solid #3a3a4c;
+            color: #fff;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+
+        .val-display {
+            font-size: 12px;
+            color: #00ffc8;
+            float: right;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>TÙY CHỈNH HÌNH DẠNG KHỐI 3D BẰNG MA TRẬN</h1>
+
+    <div class="container">
+        <!-- Canvas hiển thị 3D -->
+        <canvas id="canvas3d" width="600" height="500"></canvas>
+
+        <!-- Bảng điều khiển từ bên ngoài -->
+        <div class="controls">
+            <div class="control-group">
+                <label for="shapeSelect">Chọn khối hình 3D:</label>
+                <select id="shapeSelect">
+                    <option value="cube">Khối Lập Phương (Cube)</option>
+                    <option value="pyramid">Kim Tự Tháp (Pyramid)</option>
+                    <option value="prism">Lăng Trụ Tam Giác (Prism)</option>
+                    <option value="octahedron">Khối 8 Mặt (Octahedron)</option>
+                </select>
+            </div>
+
+            <hr style="border-color: #2a2a38; margin: 15px 0;">
+
+            <div class="control-group">
+                <label>Tỉ lệ Chiều Rộng (Scale X): <span id="valX" class="val-display">1.0</span></label>
+                <input type="range" id="scaleX" min="0.2" max="2.5" step="0.1" value="1.0">
+            </div>
+
+            <div class="control-group">
+                <label>Tỉ lệ Chiều Cao (Scale Y): <span id="valY" class="val-display">1.0</span></label>
+                <input type="range" id="scaleY" min="0.2" max="2.5" step="0.1" value="1.0">
+            </div>
+
+            <div class="control-group">
+                <label>Tỉ lệ Chiều Sâu (Scale Z): <span id="valZ" class="val-display">1.0</span></label>
+                <input type="range" id="scaleZ" min="0.2" max="2.5" step="0.1" value="1.0">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas3d');
+        const ctx = canvas.getContext('2d');
+        const WIDTH = canvas.width;
+        const HEIGHT = canvas.height;
+
+        // -------------------------------------------------------------
+        // 1. DỮ LIỆU CÁC KHỐI HÌNH (VERTICES & EDGES)
+        // -------------------------------------------------------------
+        const shapes = {
+            // Khối Lập Phương (8 đỉnh, 12 cạnh)
+            cube: {
+                vertices: [
+                    [-80, 80, 80, -80, -80, 80, 80, -80],
+                    [-80, -80, 80, 80, -80, -80, 80, 80],
+                    [-80, -80, -80, -80, 80, 80, 80, 80],
+                    [1, 1, 1, 1, 1, 1, 1, 1]
+                ],
+                edges: [
+                    [0, 1], [1, 2], [2, 3], [3, 0],
+                    [4, 5], [5, 6], [6, 7], [7, 4],
+                    [0, 4], [1, 5], [2, 6], [3, 7]
+                ]
+            },
+            // Kim Tự Tháp (5 đỉnh, 8 cạnh)
+            pyramid: {
+                vertices: [
+                    [-80, 80, 80, -80, 0],
+                    [80, 80, 80, 80, -100], // Đỉnh chóp ở Y = -100
+                    [-80, -80, 80, 80, 0],
+                    [1, 1, 1, 1, 1]
+                ],
+                edges: [
+                    [0, 1], [1, 2], [2, 3], [3, 0], // Đáy
+                    [0, 4], [1, 4], [2, 4], [3, 4]  // Cạnh bên
+                ]
+            },
+            // Lăng Trụ Tam Giác (6 đỉnh, 9 cạnh)
+            prism: {
+                vertices: [
+                    [0, -80, 80, 0, -80, 80], // X
+                    [-80, 80, 80, -80, 80, 80], // Y
+                    [-100, -100, -100, 100, 100, 100], // Z
+                    [1, 1, 1, 1, 1, 1]
+                ],
+                edges: [
+                    [0, 1], [1, 2], [2, 0], // Tam giác sau
+                    [3, 4], [4, 5], [5, 3], // Tam giác trước
+                    [0, 3], [1, 4], [2, 5]  // Nối 2 đáy
+                ]
+            },
+            // Khối 8 Mặt / Bát Diện (6 đỉnh, 12 cạnh)
+            octahedron: {
+                vertices: [
+                    [0, 0, -100, 100, 0, 0],
+                    [-100, 100, 0, 0, 0, 0],
+                    [0, 0, 0, 0, -100, 100],
+                    [1, 1, 1, 1, 1, 1]
+                ],
+                edges: [
+                    [0, 2], [2, 1], [1, 3], [3, 0], // Vòng giữa
+                    [0, 4], [1, 4], [2, 4], [3, 4], // Nối đỉnh trên
+                    [0, 5], [1, 5], [2, 5], [3, 5]  // Nối đỉnh dưới
+                ]
+            }
+        };
+
+        let currentShape = shapes.cube;
+
+        // -------------------------------------------------------------
+        // 2. PHÉP NHÂN MA TRẬN TỔNG QUÁT (A x B)
+        // -------------------------------------------------------------
+        function multiplyMatrices(A, B) {
+            const rowsA = A.length, colsA = A[0].length;
+            const rowsB = B.length, colsB = B[0].length;
+            let result = Array(rowsA).fill(0).map(() => Array(colsB).fill(0));
+
+            for (let i = 0; i < rowsA; i++) {
+                for (let j = 0; j < colsB; j++) {
+                    for (let k = 0; k < colsA; k++) {
+                        result[i][j] += A[i][k] * B[k][j];
+                    }
+                }
+            }
+            return result;
+        }
+
+        // -------------------------------------------------------------
+        // 3. MA TRẬN THU PHÓNG S VÀ CÁC MA TRẬN XOAY R
+        // -------------------------------------------------------------
+        function getScaleMatrix(sx, sy, sz) {
+            return [
+                [sx, 0, 0, 0],
+                [0, sy, 0, 0],
+                [0, 0, sz, 0],
+                [0, 0, 0, 1]
+            ];
+        }
+
+        function getRotationX(deg) {
+            const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+            return [[1, 0, 0, 0], [0, c, -s, 0], [0, s, c, 0], [0, 0, 0, 1]];
+        }
+        function getRotationY(deg) {
+            const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+            return [[c, 0, s, 0], [0, 1, 0, 0], [-s, 0, c, 0], [0, 0, 0, 1]];
+        }
+        function getRotationZ(deg) {
+            const r = deg * Math.PI / 180, c = Math.cos(r), s = Math.sin(r);
+            return [[c, -s, 0, 0], [s, c, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]];
+        }
+
+        // Thông số toàn cục
+        let angleX = 0, angleY = 0, angleZ = 0;
+        const focalLength = 400, cameraDistance = 400;
+
+        // -------------------------------------------------------------
+        // 4. VÒNG LẶP VẼ (RENDER LOOP)
+        // -------------------------------------------------------------
+        function render() {
+            ctx.fillStyle = "#151520";
+            ctx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            // Đọc giá trị từ các thanh trượt UI
+            const sx = parseFloat(document.getElementById('scaleX').value);
+            const sy = parseFloat(document.getElementById('scaleY').value);
+            const sz = parseFloat(document.getElementById('scaleZ').value);
+
+            // Cập nhật số hiển thị bên cạnh thanh trượt
+            document.getElementById('valX').innerText = sx.toFixed(1);
+            document.getElementById('valY').innerText = sy.toFixed(1);
+            document.getElementById('valZ').innerText = sz.toFixed(1);
+
+            // Cập nhật góc xoay
+            angleX += 0.5; angleY += 0.8; angleZ += 0.3;
+
+            // 1. Tạo ma trận Thu phóng S và các ma trận Xoay R
+            const S = getScaleMatrix(sx, sy, sz);
+            const Rx = getRotationX(angleX);
+            const Ry = getRotationY(angleY);
+            const Rz = getRotationZ(angleZ);
+
+            // 2. Nhân ma trận tổng hợp: M = Rz @ Ry @ Rx @ S
+            const R_temp = multiplyMatrices(Ry, Rx);
+            const R_total = multiplyMatrices(Rz, R_temp);
+            const M_total = multiplyMatrices(R_total, S);
+
+            // 3. Nhân ma trận tổng hợp với các Đỉnh của hình đang chọn
+            const transformed = multiplyMatrices(M_total, currentShape.vertices);
+
+            // 4. Phép chiếu phối cảnh 3D -> 2D
+            let points2D = [];
+            const numVertices = currentShape.vertices[0].length;
+            for (let i = 0; i < numVertices; i++) {
+                const X = transformed[0][i];
+                const Y = transformed[1][i];
+                const Z = transformed[2][i] + cameraDistance;
+
+                const x2d = (focalLength * X) / Z + (WIDTH / 2);
+                const y2d = (focalLength * Y) / Z + (HEIGHT / 2);
+                points2D.push([x2d, y2d]);
+            }
+
+            // 5. Vẽ các cạnh
+            ctx.strokeStyle = "#00ffc8";
+            ctx.lineWidth = 2;
+            for (let edge of currentShape.edges) {
+                const p1 = points2D[edge[0]];
+                const p2 = points2D[edge[1]];
+                ctx.beginPath();
+                ctx.moveTo(p1[0], p1[1]);
+                ctx.lineTo(p2[0], p2[1]);
+                ctx.stroke();
+            }
+
+            // 6. Vẽ các đỉnh
+            ctx.fillStyle = "#ff4646";
+            for (let p of points2D) {
+                ctx.beginPath();
+                ctx.arc(p[0], p[1], 5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            requestAnimationFrame(render);
+        }
+
+        // Sự kiện đổi hình dáng từ Menu thả xuống (Dropdown)
+        document.getElementById('shapeSelect').addEventListener('change', (e) => {
+            currentShape = shapes[e.target.value];
+        });
+
+        // Khởi chạy ứng dụng
+        render();
+    </script>
+</body>
+
+</html>
