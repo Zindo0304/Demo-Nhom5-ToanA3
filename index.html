@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ứng Dụng DSTT - Nhóm 5</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            /* background-color: #f4f6f9; */
+            background-color: rgb(15, 15, 20);
+            color: #333333;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ==========================================
+           THANH MENU NỔI KÍNH MỜ (BLUR GLASSMORPHISM)
+           ========================================== */
+        .navbar-container {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 85%;
+            max-width: 950px;
+
+            /* Màu nền xám trong suốt 55% */
+            background-color: rgba(26, 26, 36, 1);
+
+            /* Hiệu ứng làm mờ nội dung phía sau (Glassmorphism) */
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+
+            /* Viền kính mờ tinh tế */
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-radius: 40px;
+
+            padding: 12px 35px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+
+            /* Bóng đổ mềm cho hiệu ứng nổi */
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.18);
+        }
+
+        /* Logo / Tên Nhóm */
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Các nút bấm trên menu */
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .nav-item {
+            background: transparent;
+            border: 1px solid transparent;
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            padding: 8px 18px;
+            border-radius: 20px;
+            transition: all 0.25 ease;
+            letter-spacing: 0.5px;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.25);
+        }
+
+        .nav-item.active {
+            /* background-color: #ffffff;
+            color: #222222;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); */
+            background-color: #252533;
+            color: #00ffc8;
+            border: 1px solid #00ffc8;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        /* ==========================================
+           KHUNG NỘI DUNG CHÍNH (MAIN CONTENT)
+           ========================================== */
+        main {
+            padding-top: 110px;
+            padding-left: 20px;
+            padding-right: 20px;
+            padding-bottom: 40px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        /* Trang chủ Dashboard */
+        .dashboard-view {
+            display: block;
+        }
+
+        .hero {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        .hero h1 {
+            font-size: 28px;
+            color: #fff;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+
+        .hero p {
+            color: #fff;
+            font-size: 16px;
+        }
+
+        /* Thẻ hiển thị các Bài toán */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+
+        .card {
+            background-color: #ffffff;
+            border-radius: 16px;
+            padding: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e1e5ee;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
+        }
+
+        .card-header {
+            font-size: 20px;
+            font-weight: bold;
+            color: #1a73e8;
+            margin-bottom: 12px;
+        }
+
+        .card-desc {
+            color: #555555;
+            font-size: 14px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .btn-launch {
+            background-color: #5a5a64;
+            color: #ffffff;
+            border: none;
+            padding: 12px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.2s;
+        }
+
+        .btn-launch:hover {
+            background-color: #333333;
+        }
+
+        /* Khung hiển thị Iframe ứng dụng */
+        .app-view {
+            display: none;
+            width: 100%;
+            height: calc(100vh - 140px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            background-color: #151520;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- THANH MENU NỔI KÍNH MỜ (BLUR GLASSMORPHISM) -->
+    <div class="navbar-container">
+        <div class="navbar-brand">NHÓM 5</div>
+        <div class="nav-links">
+            <button class="nav-item active" onclick="switchTab('dashboard')">TRANG CHỦ</button>
+            <button class="nav-item" onclick="switchTab('3d')">KHUNG DÂY 3D</button>
+            <button class="nav-item" onclick="switchTab('hill')">MẬT MÃ HILL</button>
+        </div>
+    </div>
+
+    <!-- NỘI DUNG CHÍNH -->
+    <main>
+        <!-- 1. VIEW TRANG CHỦ -->
+        <div id="dashboardView" class="dashboard-view">
+            <div class="hero">
+                <h1>BÁO CÁO BÀI TẬP LỚN ĐẠI SỐ TUYẾN TÍNH</h1>
+                <p>Ứng dụng Ma Trận trong Đồ Họa 3D và Bảo Mật Mật Mã Học</p>
+            </div>
+
+            <div class="grid-container">
+                <!-- Card 1 -->
+                <div class="card">
+                    <div>
+                        <div class="card-header">🧊 BÀI TOÁN 1: KHUNG DÂY 3D</div>
+                        <p class="card-desc">
+                            Sử dụng ma trận xoay <b>4x4</b>, ma trận thu phóng (Scaling) và phép chiếu phối cảnh
+                            (Perspective Projection) để mô phỏng và xoay các khối hình không gian 3D trên Canvas.
+                        </p>
+                    </div>
+                    <button class="btn-launch" onclick="switchTab('3d')">TRẢI NGHIỆM NGAY ➔</button>
+                </div>
+
+                <!-- Card 2 -->
+                <div class="card">
+                    <div>
+                        <div class="card-header">🔐 BÀI TOÁN 2: MẬT MÃ HILL</div>
+                        <p class="card-desc">
+                            Mã hóa và giải mã chuỗi ký tự bằng ma trận khóa <b>K</b> trên vành
+                            <b>Z</b>. Tự động tìm ma trận nghịch đảo <b>mod 26</b> và kiểm tra điều kiện
+                            <b>gcd(det(K), 26) = 1</b>.
+                        </p>
+                    </div>
+                    <button class="btn-launch" onclick="switchTab('hill')">TRẢI NGHIỆM NGAY ➔</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. VIEW BÀI TOÁN KHUNG DÂY 3D -->
+        <div id="app3dView" class="app-view">
+            <iframe id="frame3d" src=""></iframe>
+        </div>
+
+        <!-- 3. VIEW BÀI TOÁN MẬT MÃ HILL -->
+        <div id="appHillView" class="app-view">
+            <iframe id="frameHill" src=""></iframe>
+        </div>
+    </main>
+
+    <script>
+        function switchTab(tabName) {
+            const buttons = document.querySelectorAll('.nav-item');
+            const dashboardView = document.getElementById('dashboardView');
+            const app3dView = document.getElementById('app3dView');
+            const appHillView = document.getElementById('appHillView');
+
+            const frame3d = document.getElementById('frame3d');
+            const frameHill = document.getElementById('frameHill');
+
+            // Bỏ active toàn bộ nút
+            buttons.forEach(btn => btn.classList.remove('active'));
+
+            // Ẩn toàn bộ view
+            dashboardView.style.display = 'none';
+            app3dView.style.display = 'none';
+            appHillView.style.display = 'none';
+
+            // Xử lý chuyển tab
+            if (tabName === 'dashboard') {
+                buttons[0].classList.add('active');
+                dashboardView.style.display = 'block';
+            }
+            else if (tabName === '3d') {
+                buttons[1].classList.add('active');
+                app3dView.style.display = 'block';
+                if (!frame3d.src.includes('KhungDay3D.html')) {
+                    frame3d.src = 'KhungDay3D.html';
+                }
+            }
+            else if (tabName === 'hill') {
+                buttons[2].classList.add('active');
+                appHillView.style.display = 'block';
+                if (!frameHill.src.includes('MatMaHill.html')) {
+                    frameHill.src = 'MatMaHill.html';
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
